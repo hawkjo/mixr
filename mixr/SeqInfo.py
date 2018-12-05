@@ -15,6 +15,7 @@ class SeqInfo(object):
         self.remove_singleton_msas()
 
     def process_exon_pos_file(self):
+        log.info('Reading exon pos file')
         exon_pos_given_fname = {}
         for line in open(self.arguments.exon_pos_fpath):
             words = line.strip().split()
@@ -27,12 +28,14 @@ class SeqInfo(object):
         self.fnames.sort()
 
     def load_msas(self):
+        log.info('Loading MSAs')
         self.msa_recs_given_fname = {}
         for fname in self.fnames:
             fpath = os.path.join(arguments.in_dir, fname)
             self.msa_recs_given_fname[fname] = list(SeqIO.parse(open(fpath), 'fasta'))
 
     def remove_singleton_msas(self):
+        log.info('Removing single-sequence MSAs')
         bad_fnames = set([fname for fname in self.fnames
                           if len(self.msa_recs_given_fname[fname]) < 2])
         self.fnames = [fname for fname in self.fnames if fname not in bad_fnames]
