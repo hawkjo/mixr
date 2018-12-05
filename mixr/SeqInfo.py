@@ -1,6 +1,8 @@
 import os
+import logging
 from Bio import SeqIO
 
+log = logging.getLogger(__name__)
 
 class SeqInfo(object):
     """
