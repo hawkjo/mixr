@@ -2,7 +2,7 @@
 MIXR: Mismatching Isoform eXon Remover
 
 Usage:
-  mixr <in_prot_dir> <in_cds_dir> <out_prot_dir> <out_cds_dir> <exon_pos_file> [-v | -vv | -vvv]
+  mixr <in_prot_dir> <in_cds_dir> <in_exon_pos_file> <out_prot_dir> <out_cds_dir> <out_exon_pos_file> [-v | -vv | -vvv]
 
 Options:
   -h --help     Show this screen.

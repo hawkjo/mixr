@@ -20,20 +20,24 @@ class CommandLineArguments(object):
         return os.path.expanduser(self._arguments['<in_prot_dir>']) or None
 
     @property
-    def out_prot_dir(self):
-        return os.path.expanduser(self._arguments['<out_prot_dir>']) or None
-
-    @property
     def in_cds_dir(self):
         return os.path.expanduser(self._arguments['<in_cds_dir>']) or None
+
+    @property
+    def in_exon_pos_file(self):
+        return os.path.expanduser(self._arguments['<in_exon_pos_file>']) or None
+
+    @property
+    def out_prot_dir(self):
+        return os.path.expanduser(self._arguments['<out_prot_dir>']) or None
 
     @property
     def out_cds_dir(self):
         return os.path.expanduser(self._arguments['<out_cds_dir>']) or None
 
     @property
-    def exon_pos_file(self):
-        return os.path.expanduser(self._arguments['<exon_pos_file>']) or None
+    def out_exon_pos_file(self):
+        return os.path.expanduser(self._arguments['<out_exon_pos_file>']) or None
 
     @property
     def log_level(self):

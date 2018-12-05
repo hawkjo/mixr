@@ -23,7 +23,7 @@ class SeqInfo(object):
     def process_exon_pos_file(self):
         log.info('Reading exon pos file')
         exon_pos_given_fname = {}
-        for line in open(self.arguments.exon_pos_fpath):
+        for line in open(self.arguments.in_exon_pos_fpath):
             words = line.strip().split()
             exon_pos_given_fname[words[0]] = map(int, words[1:])
 
