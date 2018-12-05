@@ -2,6 +2,7 @@ import itertools
 import logging
 from collections import Counter
 from SeqInfo import SeqInfo
+from pamscore import PAM30_score
 
 
 log = logging.getLogger(__name__)
@@ -26,3 +27,29 @@ def get_second_consensus_subsets(msa_seq_strs):
                 if len(new_sub) <= float(len(msa_seq_strs)) / 2.0:
                     second_consensus_subsets.add(new_sub)
     return second_consensus_subsets
+
+def get_S2_scores(msa_seq_strs, S2, score_func):
+    msa_len = len(msa_seq_strs[0])
+    S2_seqs = [msa_seq_strs[s_idx] for s_idx in sorted(S2)]
+    S2Comp = set(range(len(msa_seq_strs))) - S2
+    S2Comp_seqs = [msa_seq_strs[s_idx] for s_idx in sorted(S2Comp)]
+    
+    S2_scores = []
+    curr = 0
+    for col_idx in range(msa_len):
+        curr += min([score_func(s1, s2, col_idx) for i, s1 in enumerate(S2_seqs) for s2 in S2_seqs[i:]])
+        curr -= 2 * max([score_func(s, c, col_idx) for s in S2_seqs for c in S2Comp_seqs])
+        curr = max(0, curr)
+        S2_scores.append(curr)
+    return S2_scores
+
+def get_score_and_pos(msa_seq_strs, S2, score_func):
+    S2_scores = get_S2_scores(msa_seq_strs, S2, score_func)
+    max_score = max(S2_scores)
+    max_score_end = S2_scores.index(max_score) + 1
+    max_score_start = max_score_end - 1
+    while max_score_start > 0 and S2_scores[max_score_start - 1] > 0:
+        max_score_start -= 1
+    return max_score, (max_score_start, max_score_end)
+
+
