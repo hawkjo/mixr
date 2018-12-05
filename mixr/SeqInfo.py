@@ -1,12 +1,15 @@
 import os
+import random
+import math
 import logging
 from Bio import SeqIO
+from copy import deepcopy
 
 log = logging.getLogger(__name__)
 
 class SeqInfo(object):
     """
-    A container class for MSA fnames, records, and exon info.
+    A class for MSA fnames, records, exon info, and neg control seqs.
     """
     def __init__(self, arguments):
         self.arguments = arguments
@@ -14,6 +17,7 @@ class SeqInfo(object):
         self.load_msas()
         self.remove_singleton_msas()
         self.infer_species()
+        self.build_negative_control_seqs()
 
     def process_exon_pos_file(self):
         log.info('Reading exon pos file')
@@ -55,4 +59,39 @@ class SeqInfo(object):
         self.species = set()
         for msa_recs in self.msa_recs_given_fname.values():
             self.species.update([str(rec.id) for rec in msa_recs])
+        self.sorted_species = list(self.species)
+        self.sorted_species.sort()
 
+    def build_negative_control_seqs(self):
+        log.info('Building negative control sequences')
+
+        all_species_cols = []
+        for msa_recs in self.msa_recs_given_fname.values():
+            if len(msa_recs) < len(self.species):
+                continue
+            msa_recs.sort(key=lambda rec: str(rec.id))
+            msa_seq_strs = [str(rec.seq) for rec in msa_recs]
+            msa_len = len(msa_seq_strs[0])
+            for col_idx in range(msa_len):
+                all_species_cols.append([seq[col_idx] for seq in msa_seq_strs])
+        log.info('Number of all-species columns: {:,d}'.format(len(all_species_cols)))
+
+        max_msa_len = max(len(msa_recs[0]) for msa_recs in self.msa_recs_given_fname.values())
+        num_shuffles = int(math.ceil(float(100 * max_msa_len)/len(all_species_cols)))
+
+        self.neg_control_seqs = ['' for _ in range(len(self.species))]
+        for _ in range(num_shuffles):
+            all_species_cols_copy = deepcopy(all_species_cols)
+            random.shuffle(all_species_cols_copy)
+            for row in range(len(self.neg_control_seqs)):
+                self.neg_control_seqs[row] += ''.join([col[row] for col in all_species_cols_copy])
+        assert len(set(map(len, self.neg_control_seqs))) == 1
+        assert len(self.neg_control_seqs) == len(self.species)
+        log.info('Negative control max sequence length: {:,d}   ({:.1f} x longest seq)'.format(
+            len(self.neg_control_seqs[0]),
+            len(self.neg_control_seqs[0])/float(max_msa_len)
+        ))
+
+    def get_negative_control_seqs(self, species_names, seqlen):
+        return [seq[:seqlen] for species_name, seq in zip(self.sorted_species, neg_control_seqs)
+                if species_name in species_names]
