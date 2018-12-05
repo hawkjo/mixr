@@ -78,8 +78,8 @@ def update_exons(exons, good_exons):
     return new_exons
 
 def next_significant_score(msa_recs,
-                           score_func,
                            seq_info,
+                           score_func,
                            shortest_allowed,
                            largest_to_smallest_subset=True):
 
@@ -102,11 +102,8 @@ def next_significant_score(msa_recs,
     return None
 
 def filter_exons_then_species(fname,
-                              msa_recs,
-                              cds_msa_recs,
-                              exons,
-                              score_func,
                               seq_info,
+                              score_func,
                               shortest_allowed=3):
 
     # Filter sequences, attempting to keep as many species as possible. Specifically:
@@ -120,6 +117,9 @@ def filter_exons_then_species(fname,
     #         remove smallest significant-score subset species
     # return results
     
+    msa_recs = seq_info.msa_recs_given_fname[fname],
+    cds_msa_recs = seq_info.cds_msa_recs_given_fname[fname],
+    exons = seq_info.exons_given_fname[fname],
     removal_actions = []
     
     still_badness = True
@@ -132,8 +132,8 @@ def filter_exons_then_species(fname,
         
         while True:
             res = next_significant_score(msa_recs,
-                                         score_func,
                                          seq_info,
+                                         score_func,
                                          shortest_allowed,
                                          largest_to_smallest_subset=True)
             if res is None:
@@ -176,8 +176,8 @@ def filter_exons_then_species(fname,
             exons = pre_exon_removal_exons[:]
             
             res = next_significant_score(msa_recs,
-                                         score_func,
                                          seq_info,
+                                         score_func,
                                          shortest_allowed,
                                          largest_to_smallest_subset=False)
             if res is None:
@@ -196,7 +196,7 @@ def filter_exons_then_species(fname,
                  bad_species_names]
             )
                 
-    return fname, msa_recs, cds_msa_recs, removal_actions
+    return msa_recs, cds_msa_recs, removal_actions
 
 def remove_gaps(fname, msa_recs, cds_msa_recs, prefilter_exons, removal_actions):
     # Find post-filter exons
@@ -260,4 +260,25 @@ def clean_msas(arguments):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
+    out_exon_pos_given_fname = {}
+    for fname in seq_info.fnames:
+        msa_recs, cds_msa_recs, removal_actions = filter_exons_then_species(
+            fname,
+            seq_info,
+            PAM30_score
+        )
+        msa_recs, cds_msa_recs, exons, all_gap_col_idxs = remove_gaps(
+            fname,
+            msa_recs,
+            cds_msa_recs,
+            seq_info.exons_given_fname[fname],
+            removal_actions
+        )
+        
+        SeqIO.write(msa_recs, open(os.path.join(arguments.out_prot_dir, fname), 'w'), 'fasta')
+        SeqIO.write(cds_msa_recs, open(os.path.join(arguments.out_cds_dir, fname), 'w'), 'fasta')
+        exon_pos_given_fname[fname] = exon_pos_from_exons(exons)
 
+    with open(arguments.out_exon_pos_file, 'w') as out:
+        for fname, exon_pos in sorted(out_exon_pos_given_fname.items()):
+            out.write('{}\t{}\n'.format(fname, '\t'.join(map(str, exon_pos))))
