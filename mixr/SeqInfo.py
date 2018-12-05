@@ -37,7 +37,8 @@ class SeqInfo(object):
         self.msa_recs_given_fname = {}
         for fname in self.fnames:
             fpath = os.path.join(arguments.in_dir, fname)
-            self.msa_recs_given_fname[fname] = list(SeqIO.parse(open(fpath), 'fasta'))
+            self.msa_recs_given_fname[fname] = sorted(SeqIO.parse(open(fpath), 'fasta'),
+                                                      key=lambda rec: str(rec.id))
 
     def remove_singleton_msas(self):
         log.info('Removing single-sequence MSAs')
@@ -79,19 +80,25 @@ class SeqInfo(object):
         max_msa_len = max(len(msa_recs[0]) for msa_recs in self.msa_recs_given_fname.values())
         num_shuffles = int(math.ceil(float(100 * max_msa_len)/len(all_species_cols)))
 
-        self.neg_control_seqs = ['' for _ in range(len(self.species))]
+        neg_control_seqs = ['' for _ in range(len(self.species))]
         for _ in range(num_shuffles):
             all_species_cols_copy = deepcopy(all_species_cols)
             random.shuffle(all_species_cols_copy)
-            for row in range(len(self.neg_control_seqs)):
-                self.neg_control_seqs[row] += ''.join([col[row] for col in all_species_cols_copy])
-        assert len(set(map(len, self.neg_control_seqs))) == 1
-        assert len(self.neg_control_seqs) == len(self.species)
+            for row in range(len(neg_control_seqs)):
+                neg_control_seqs[row] += ''.join([col[row] for col in all_species_cols_copy])
+        assert len(set(map(len, neg_control_seqs))) == 1
+        assert len(neg_control_seqs) == len(self.species)
+
+        self.neg_control_seq_given_species_name = {
+            species_name: neg_control_seq for species_name, neg_control_seq
+            in zip(self.sorted_species, neg_control_seqs)
+        }
+
         log.info('Negative control max sequence length: {:,d}   ({:.1f} x longest seq)'.format(
-            len(self.neg_control_seqs[0]),
-            len(self.neg_control_seqs[0])/float(max_msa_len)
+            len(neg_control_seqs[0]),
+            len(neg_control_seqs[0])/float(max_msa_len)
         ))
 
     def get_negative_control_seqs(self, species_names, seqlen):
-        return [seq[:seqlen] for species_name, seq in zip(self.sorted_species, neg_control_seqs)
-                if species_name in species_names]
+        return [self.neg_control_seq_given_species_name[species_name][:seqlen]
+                for species_name in species_names]
