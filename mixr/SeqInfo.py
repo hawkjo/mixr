@@ -13,6 +13,7 @@ class SeqInfo(object):
         self.process_exon_pos_file()
         self.load_msas()
         self.remove_singleton_msas()
+        self.infer_species()
 
     def process_exon_pos_file(self):
         log.info('Reading exon pos file')
@@ -49,4 +50,9 @@ class SeqInfo(object):
             for fname in bad_fnames:
                     del msa_recs_given_fname[fname]
                         del exon_pos_given_fname[fname]
+
+    def infer_species(self):
+        self.species = set()
+        for msa_recs in self.msa_recs_given_fname.values():
+            self.species.update([str(rec.id) for rec in msa_recs])
 
