@@ -15,7 +15,7 @@ if __name__ == '__main__':
         },
         include_package_data=True,
         zip_safe=False,
-        data_files=[('resources', ['resources/base_logp.pkl'])],
+        data_files=[('resources', ['resources/pam30.txt'])],
         description='Mismatching Isoform Exon Remover',
         keywords=['DNA', 'bioinformatics', 'genomics', 'transcriptomics', 'alignment'],
         classifiers=['Development Status :: 3 - Alpha',
