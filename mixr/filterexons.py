@@ -197,3 +197,57 @@ def filter_exons_then_species(fname,
             )
                 
     return fname, msa_recs, cds_msa_recs, removal_actions
+
+def remove_gaps(fname, msa_recs, cds_msa_recs, prefilter_exons, removal_actions):
+    # Find post-filter exons
+    exons = prefilter_exons
+    for action in removal_actions:
+        if action[0].startswith('exon'):
+            exons = action[-1]
+
+    # Find all-gap columns
+    msa_seq_strs = [str(rec.seq) for rec in msa_recs]
+    cds_msa_seq_strs = [str(rec.seq) for rec in cds_msa_recs]
+    msa_len = len(msa_seq_strs[0])
+    all_gap_col_idxs = []
+    for col_idx in range(msa_len):
+        if all([seq[col_idx] == '-' for seq in msa_seq_strs]):
+            for cds_col_idx in range(3 * col_idx, 3 * col_idx + 3):
+                assert all([seq[cds_col_idx] == '-' for seq in cds_msa_seq_strs]), fname
+            all_gap_col_idxs.append(col_idx)
+            
+    # Remove gaps
+    for col_idx in sorted(all_gap_col_idxs, reverse=True):  # Remove gaps right to left so idxs work
+        msa_recs = [rec[:col_idx] + rec[col_idx+1:] for rec in msa_recs]
+        new_len = len(msa_recs[0])
+        cds_col_idx = 3 * col_idx
+        cds_msa_recs = [rec[:cds_col_idx] + rec[cds_col_idx+3:] for rec in cds_msa_recs]
+        new_exons = []
+        for start, end in exons:
+            if col_idx < start:
+                start -= 1
+            if col_idx < end:
+                end -= 1
+            new_exons.append((start, end))
+        exons = new_exons
+        
+    # Check that everything looks good if things changed
+    if all_gap_col_idxs:
+        for rec, cds_rec in zip(msa_recs, cds_msa_recs):
+            assert 3 * len(rec) == len(cds_rec), fname
+        
+        assert len(set(map(len, msa_recs))) == 1, fname
+        new_msa_len = len(msa_recs[0])
+        assert new_msa_len == msa_len - len(all_gap_col_idxs), (fname, msa_len, new_msa_len, all_gap_col_idxs, msa_recs)
+        assert new_msa_len == exons[-1][-1], (fname, msa_len, new_msa_len, all_gap_col_idxs, exons)
+        for (start1, end1), (start2, end2) in zip(exons[:-1], exons[1:]):
+            assert end1 == start2, fname
+        
+        for col_idx in range(new_msa_len):
+            msa_seq_strs = [str(rec.seq) for rec in msa_recs]
+            assert not all([seq[col_idx] == '-' for seq in msa_seq_strs]), fname
+            
+    return msa_recs, cds_msa_recs, exons, all_gap_col_idxs
+
+def exon_pos_from_exons(exons):
+    return [start for start, end in exons] + [exons[-1][-1]]
