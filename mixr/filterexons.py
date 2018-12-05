@@ -52,4 +52,148 @@ def get_score_and_pos(msa_seq_strs, S2, score_func):
         max_score_start -= 1
     return max_score, (max_score_start, max_score_end)
 
+def python_intervals_overlap(interval1, interval2):
+    query_start, query_end = interval1
+    subject_start, subject_end = interval2
+    return (query_start <= subject_start < query_end
+            or query_start < subject_end <= query_end
+            or subject_start <= query_start < subject_end
+            or subject_start < query_end <= subject_end)
 
+def keep_only_good_exons(rec, good_exons):
+    start, end = good_exons[0]
+    new_rec = rec[start:end]
+    for start, end in good_exons[1:]:
+        new_rec += rec[start:end]
+    return new_rec
+
+def update_exons(exons, good_exons):
+    last_end = 0
+    to_subtract = 0
+    new_exons = []
+    for start, end in good_exons:
+        to_subtract += start - last_end
+        new_exons.append((start - to_subtract, end - to_subtract))
+        last_end = end
+    return new_exons
+
+def next_significant_score(msa_recs,
+                           score_func,
+                           seq_info,
+                           shortest_allowed,
+                           largest_to_smallest_subset=True):
+
+    species_names = [str(rec.id) for rec in msa_recs]
+    msa_seq_strs = [str(rec.seq) for rec in msa_recs]
+    msa_len = len(msa_seq_strs[0])
+    neg_ctrl_len = 100 * msa_len
+    loc_S2s = get_second_consensus_subsets(msa_seq_strs)
+
+    for S2 in sorted(loc_S2s, key=len, reverse=largest_to_smallest_subset):  
+        score, pos_tup = get_score_and_pos(msa_seq_strs, S2, score_func)
+        if pos_tup[1] - pos_tup[0] < shortest_allowed:
+            continue
+
+        neg_ctrl_seq_strs = seq_info.get_negative_control_seqs(species_names, neg_ctrl_len)
+        neg_ctrl_score, neg_ctrl_pos_tup = get_score_and_pos(neg_ctrl_seq_strs, S2, score_func)
+
+        if score > neg_ctrl_score:
+            return score, neg_ctrl_score, pos_tup, S2
+    return None
+
+def filter_exons_then_species(fname,
+                              msa_recs,
+                              cds_msa_recs,
+                              exons,
+                              score_func,
+                              seq_info,
+                              shortest_allowed=3):
+
+    # Filter sequences, attempting to keep as many species as possible. Specifically:
+    #
+    # while still badness:
+    #     store pre-exon-removal state
+    #     while MSA remaining and still badness:
+    #         remove largest significant-score subset exons
+    #     if whole MSA removed:
+    #         restore pre-exon-removal state
+    #         remove smallest significant-score subset species
+    # return results
+    
+    removal_actions = []
+    
+    still_badness = True
+    while still_badness:
+        pre_exon_removal_msa_recs = msa_recs[:]
+        pre_exon_removal_cds_msa_recs = cds_msa_recs
+        pre_exon_removal_removal_actions = removal_actions[:]
+        pre_exon_removal_exons = exons[:]
+        whole_MSA_removed = False
+        
+        while True:
+            res = next_significant_score(msa_recs,
+                                         score_func,
+                                         seq_info,
+                                         shortest_allowed,
+                                         largest_to_smallest_subset=True)
+            if res is None:
+                still_badness = False
+                break
+                
+            score, neg_ctrl_score, pos_tup, S2 = res
+            species_names = [str(rec.id) for rec in msa_recs]
+            bad_species_names = [species_names[i] for i in S2]
+            
+            good_exons = [exon for exon in exons if not python_intervals_overlap(pos_tup, exon)]
+            if len(good_exons) == 0:
+                whole_MSA_removed = True
+                break
+                
+            bad_exons = [exon for exon in exons if exon not in good_exons]
+            exons = update_exons(exons, good_exons)
+            
+            msa_recs = [keep_only_good_exons(rec, good_exons) for rec in msa_recs]
+            cds_good_exons = [(3 * start, 3 * end) for start, end in good_exons]
+            cds_msa_recs = [keep_only_good_exons(rec, cds_good_exons)
+                            for rec in cds_msa_recs]
+
+            
+            removal_actions.append(
+                ['exon removal',
+                 score,
+                 neg_ctrl_score,
+                 pos_tup,
+                 bad_species_names,
+                 bad_exons,
+                 good_exons,
+                 exons]
+            )
+
+        if whole_MSA_removed:
+            msa_recs = pre_exon_removal_msa_recs[:]
+            cds_msa_recs = pre_exon_removal_cds_msa_recs
+            removal_actions = pre_exon_removal_removal_actions[:]
+            exons = pre_exon_removal_exons[:]
+            
+            res = next_significant_score(msa_recs,
+                                         score_func,
+                                         seq_info,
+                                         shortest_allowed,
+                                         largest_to_smallest_subset=False)
+            if res is None:
+                break
+
+            score, neg_ctrl_score, pos_tup, S2 = res
+            species_names = [str(rec.id) for rec in msa_recs]
+            bad_species_names = [species_names[i] for i in S2]
+            msa_recs = [rec for rec in msa_recs if str(rec.id) not in bad_species_names]
+            cds_msa_recs = [rec for rec in cds_msa_recs if str(rec.id) not in bad_sabbrs]
+            removal_actions.append(
+                ['species removal',
+                 score,
+                 neg_ctrl_score,
+                 pos_tup,
+                 bad_species_names]
+            )
+                
+    return fname, msa_recs, cds_msa_recs, removal_actions
