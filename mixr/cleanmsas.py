@@ -2,7 +2,7 @@ import itertools
 import logging
 from collections import Counter
 from SeqInfo import SeqInfo
-from pamscore import PAM30_score
+from pamscore import build_PAM30_score_func
 
 
 log = logging.getLogger(__name__)
@@ -253,4 +253,11 @@ def exon_pos_from_exons(exons):
     return [start for start, end in exons] + [exons[-1][-1]]
 
 def clean_msas(arguments):
-    pass
+    seq_info = SeqInfo(arguments)
+    PAM30_score = build_PAM30_score_func()
+
+    for out_dir in [arguments.out_prot_dir, arguments.out_cds_dir]:
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+
+
