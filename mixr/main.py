@@ -13,7 +13,7 @@ import logging
 import os
 from mixr.constants import VERSION
 from mixr.config import CommandLineArguments
-from mixr.filter_exons import filter_exons
+from mixr.filterexons import filter_exons
 from docopt import docopt
 
 
