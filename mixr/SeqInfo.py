@@ -14,8 +14,9 @@ class SeqInfo(object):
     def __init__(self, arguments):
         self.arguments = arguments
         self.process_exon_pos_file()
-        self.load_msas()
+        self.load_prot_msas()
         self.remove_singleton_msas()
+        self.load_cds_msas()
         self.infer_species()
         self.build_negative_control_seqs()
 
@@ -32,11 +33,11 @@ class SeqInfo(object):
         self.fnames = self.exons_given_fname.keys()
         self.fnames.sort()
 
-    def load_msas(self):
+    def load_prot_msas(self):
         log.info('Loading MSAs')
         self.msa_recs_given_fname = {}
         for fname in self.fnames:
-            fpath = os.path.join(arguments.in_dir, fname)
+            fpath = os.path.join(arguments.in_prot_dir, fname)
             self.msa_recs_given_fname[fname] = sorted(SeqIO.parse(open(fpath), 'fasta'),
                                                       key=lambda rec: str(rec.id))
 
@@ -55,6 +56,14 @@ class SeqInfo(object):
             for fname in bad_fnames:
                     del msa_recs_given_fname[fname]
                         del exon_pos_given_fname[fname]
+
+    def load_cds_msas(self):
+        log.info('Loading MSAs')
+        self.cds_msa_recs_given_fname = {}
+        for fname in self.fnames:
+            fpath = os.path.join(arguments.in_cds_dir, fname)
+            self.cds_msa_recs_given_fname[fname] = sorted(SeqIO.parse(open(fpath), 'fasta'),
+                                                          key=lambda rec: str(rec.id))
 
     def infer_species(self):
         self.species = set()

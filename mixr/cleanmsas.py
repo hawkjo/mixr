@@ -251,3 +251,6 @@ def remove_gaps(fname, msa_recs, cds_msa_recs, prefilter_exons, removal_actions)
 
 def exon_pos_from_exons(exons):
     return [start for start, end in exons] + [exons[-1][-1]]
+
+def clean_msas(arguments):
+    pass

@@ -18,3 +18,4 @@ See the example given in the example folder for reference.
 ### MSA requirements
 * Some non-trivial number of alignments must contain sequences from all species.
 * The record id of each sequence (the defline until the first space) must be the species name.
+* The file names for corresponding CDS and protein MSAs must be the same.

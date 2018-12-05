@@ -2,7 +2,7 @@
 MIXR: Mismatching Isoform eXon Remover
 
 Usage:
-  mixr <in_dir> <out_dir> <exon_pos_file> [-v | -vv | -vvv]
+  mixr <in_prot_dir> <in_cds_dir> <out_prot_dir> <out_cds_dir> <exon_pos_file> [-v | -vv | -vvv]
 
 Options:
   -h --help     Show this screen.
@@ -13,7 +13,7 @@ import logging
 import os
 from mixr.constants import VERSION
 from mixr.config import CommandLineArguments
-from mixr.filterexons import filter_exons
+from mixr.cleanmsas import clean_msas
 from docopt import docopt
 
 
@@ -29,7 +29,7 @@ def main(**kwargs):
     log.setLevel(arguments.log_level)
     log.debug(docopt_args)
 
-    filter_exons(arguments)
+    clean_msas(arguments)
 
 
 if __name__ == '__main__':
