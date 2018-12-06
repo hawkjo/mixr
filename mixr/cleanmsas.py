@@ -282,7 +282,7 @@ def clean_msas(arguments):
         else:
             for actions in removal_actions:
                 if actions[0].startswith('exon'):
-                    log.info('\t{}: {} in {}'.format(actions[0], str(actions[4]), str(actions[5])))
+                    log.info('\t{}: {}'.format(actions[0], str(actions[5])))
                 else:
                     assert actions[0].startswith('species'), actions
                     log.info('\t{}: {}'.format(actions[0], str(actions[-1])))
