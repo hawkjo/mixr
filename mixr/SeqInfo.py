@@ -38,8 +38,9 @@ class SeqInfo(object):
         self.msa_recs_given_fname = {}
         for fname in self.fnames:
             fpath = os.path.join(self.arguments.in_prot_dir, fname)
-            self.msa_recs_given_fname[fname] = list(sorted(SeqIO.parse(open(fpath), 'fasta'),
-                                                           key=lambda rec: str(rec.id)))
+            recs = list(SeqIO.parse(open(fpath), 'fasta'))
+            recs.sort(key=lambda rec: str(rec.id))
+            self.msa_recs_given_fname[fname] = recs
 
     def remove_singleton_msas(self):
         log.info('Removing single-sequence MSAs')
