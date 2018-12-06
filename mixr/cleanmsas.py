@@ -264,6 +264,7 @@ def clean_msas(arguments):
 
     out_exon_pos_given_fname = {}
     for fname in seq_info.fnames:
+        log.info('Cleaning {}'.format(fname))
         msa_recs, cds_msa_recs, removal_actions = filter_exons_then_species(
             fname,
             seq_info,
@@ -276,6 +277,15 @@ def clean_msas(arguments):
             seq_info.exons_given_fname[fname],
             removal_actions
         )
+        if not removal_actions:
+            log.info('\tAlready clean'.format(fname))
+        else:
+            for actions in removal_actions:
+                if actions[0].startswith('exon'):
+                    log.info('\t{}: {} in {}'.format(actions[0], str(actions[4]), str(actions[5])))
+                else:
+                    assert actions[0].startswith('species'), actions
+                    log.info('\t{}: {}'.format(actions[0], str(actions[-1])))
         
         SeqIO.write(msa_recs, open(os.path.join(arguments.out_prot_dir, fname), 'w'), 'fasta')
         SeqIO.write(cds_msa_recs, open(os.path.join(arguments.out_cds_dir, fname), 'w'), 'fasta')
@@ -284,3 +294,4 @@ def clean_msas(arguments):
     with open(arguments.out_exon_pos_file, 'w') as out:
         for fname, exon_pos in sorted(out_exon_pos_given_fname.items()):
             out.write('{}\t{}\n'.format(fname, '\t'.join(map(str, exon_pos))))
+
