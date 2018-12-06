@@ -23,7 +23,7 @@ class SeqInfo(object):
     def process_exon_pos_file(self):
         log.info('Reading exon pos file')
         exon_pos_given_fname = {}
-        for line in open(self.arguments.in_exon_pos_fpath):
+        for line in open(self.arguments.in_exon_pos_file):
             words = line.strip().split()
             exon_pos_given_fname[words[0]] = map(int, words[1:])
 
@@ -37,9 +37,9 @@ class SeqInfo(object):
         log.info('Loading MSAs')
         self.msa_recs_given_fname = {}
         for fname in self.fnames:
-            fpath = os.path.join(arguments.in_prot_dir, fname)
-            self.msa_recs_given_fname[fname] = sorted(SeqIO.parse(open(fpath), 'fasta'),
-                                                      key=lambda rec: str(rec.id))
+            fpath = os.path.join(self.arguments.in_prot_dir, fname)
+            self.msa_recs_given_fname[fname] = list(sorted(SeqIO.parse(open(fpath), 'fasta'),
+                                                           key=lambda rec: str(rec.id)))
 
     def remove_singleton_msas(self):
         log.info('Removing single-sequence MSAs')
@@ -50,18 +50,11 @@ class SeqInfo(object):
             del self.msa_recs_given_fname[fname]
             del self.exons_given_fname[fname]
 
-
-            bad_fnames = set([fname for fname in fnames if len(msa_recs_given_fname[fname]) < 2])
-            fnames = [fname for fname in fnames if fname not in bad_fnames]
-            for fname in bad_fnames:
-                    del msa_recs_given_fname[fname]
-                        del exon_pos_given_fname[fname]
-
     def load_cds_msas(self):
         log.info('Loading MSAs')
         self.cds_msa_recs_given_fname = {}
         for fname in self.fnames:
-            fpath = os.path.join(arguments.in_cds_dir, fname)
+            fpath = os.path.join(self.arguments.in_cds_dir, fname)
             self.cds_msa_recs_given_fname[fname] = sorted(SeqIO.parse(open(fpath), 'fasta'),
                                                           key=lambda rec: str(rec.id))
 
