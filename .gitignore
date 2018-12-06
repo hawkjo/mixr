@@ -4,3 +4,4 @@ envmixr
 build
 dist
 mixr.egg-info
+filtered_*
