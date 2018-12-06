@@ -1,6 +1,8 @@
+import os
 import itertools
 import logging
 from collections import Counter
+from Bio import SeqIO
 from SeqInfo import SeqInfo
 from pamscore import build_PAM30_score_func
 
@@ -117,14 +119,14 @@ def filter_exons_then_species(fname,
     #         remove smallest significant-score subset species
     # return results
     
-    msa_recs = seq_info.msa_recs_given_fname[fname],
-    cds_msa_recs = seq_info.cds_msa_recs_given_fname[fname],
-    exons = seq_info.exons_given_fname[fname],
+    msa_recs = seq_info.msa_recs_given_fname[fname]
+    cds_msa_recs = seq_info.cds_msa_recs_given_fname[fname]
+    exons = seq_info.exons_given_fname[fname]
     removal_actions = []
     
     still_badness = True
     while still_badness:
-        pre_exon_removal_msa_recs = msa_recs[:]
+        pre_exon_removal_msa_recs = msa_recs
         pre_exon_removal_cds_msa_recs = cds_msa_recs
         pre_exon_removal_removal_actions = removal_actions[:]
         pre_exon_removal_exons = exons[:]
@@ -170,7 +172,7 @@ def filter_exons_then_species(fname,
             )
 
         if whole_MSA_removed:
-            msa_recs = pre_exon_removal_msa_recs[:]
+            msa_recs = pre_exon_removal_msa_recs
             cds_msa_recs = pre_exon_removal_cds_msa_recs
             removal_actions = pre_exon_removal_removal_actions[:]
             exons = pre_exon_removal_exons[:]
@@ -187,7 +189,7 @@ def filter_exons_then_species(fname,
             species_names = [str(rec.id) for rec in msa_recs]
             bad_species_names = [species_names[i] for i in S2]
             msa_recs = [rec for rec in msa_recs if str(rec.id) not in bad_species_names]
-            cds_msa_recs = [rec for rec in cds_msa_recs if str(rec.id) not in bad_sabbrs]
+            cds_msa_recs = [rec for rec in cds_msa_recs if str(rec.id) not in bad_species_names]
             removal_actions.append(
                 ['species removal',
                  score,
@@ -277,7 +279,7 @@ def clean_msas(arguments):
         
         SeqIO.write(msa_recs, open(os.path.join(arguments.out_prot_dir, fname), 'w'), 'fasta')
         SeqIO.write(cds_msa_recs, open(os.path.join(arguments.out_cds_dir, fname), 'w'), 'fasta')
-        exon_pos_given_fname[fname] = exon_pos_from_exons(exons)
+        out_exon_pos_given_fname[fname] = exon_pos_from_exons(exons)
 
     with open(arguments.out_exon_pos_file, 'w') as out:
         for fname, exon_pos in sorted(out_exon_pos_given_fname.items()):
